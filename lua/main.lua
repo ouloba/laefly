@@ -49,6 +49,8 @@ end
 local function OnLoad(window, msg, sender)
 	--LXZMessageBox("OnTest:"..sender:GetName());
 	local root = HelperGetRoot();
+	--LXZMessageBox("OnLoad");
+	--local test = root:GetLXZWindow("canvas:tween layer");
 	local winmgr = CLXZWindowMgr:Instance();
 	winmgr:SetCursor(root:GetLXZWindow("system:cursor"));
 	HelperSetResize("resize");
@@ -59,14 +61,53 @@ local function OnUpdate(window, msg, sender)
 	UpdateWindow();
 end
 
+local function  transfer_msg(x, y, cmd)	
+	local root = HelperGetRoot();
+	local canvas = root:GetLXZWindow("canvas");
+	local wnd = root:HitTest(x,y);
+	if canvas:IsChild(wnd)==false and canvas~=wnd then
+		return;
+	end
+	
+	local msg = CLXZMessage:new_local();
+	msg:int(x);
+	msg:int(y);	
+		
+	--LXZMessageBox("transfer_msg x:"..x.." y:"..y);
+	local tween_layer = root:GetLXZWindow("canvas:tween layer");
+	local hit = tween_layer:HitTest0(x, y);
+	if hit then		
+		return hit:ProcMessage(cmd, msg, hit);
+	end
+		
+	local tween_layer = root:GetLXZWindow("canvas:link layer");
+	local hit = tween_layer:HitTest0(x, y);
+	if hit then
+		return hit:ProcMessage(cmd, msg, hit);
+	end
+end
+
 local function OnCanvasMouseMove(window, msg, sender)
 	local pt = LXZPoint:new_local();
-	pt.x = msg:int();
-	pt.y = msg:int();
+	local x = msg:int();
+	local y = msg:int();
+	--transfer_msg(x,y, "OnSysMouseMove");
 end
 
 local function OnCanvasClickUp(window, msg, sender)
-	local root = HelperGetRoot();
+	local pt = LXZPoint:new_local();
+	local x = msg:int();
+	local y = msg:int();
+	transfer_msg(x,y, "OnSysLClickUp");
+end
+
+
+
+local function OnCanvasClickDown(window, msg, sender)
+	local pt = LXZPoint:new_local();
+	local x = msg:int();
+	local y = msg:int();
+	transfer_msg(x,y, "OnSysLClickDown");	
 end
 
 local function OnTreeItemRender(window, msg, sender)
@@ -114,85 +155,6 @@ local function OnTreeItemRender(window, msg, sender)
 		
 end
 
-local function OnTweenRender(window, msg, sender)
-	if AppData.wnd == nil then
-		return;
-	end
-
-	local rect = LXZRect:new_local();
-	AppData.wnd:GetRect(rect);
-	
-	local pt = LXZPoint:new_local();
-	
-	local dc = LXZAPI_GetDC();
-	dc:SetBlendMode(BM_BLEND);
-	
-	AppData.from.x = AppData.org.x;
-	AppData.from.y = AppData.org.y;
-	AppData.to.x = AppData.current.x;
-	AppData.to.y = AppData.current.y;
-	
-	local ax = AppData.to.x-AppData.from.x;
-	local ay = AppData.to.y-AppData.from.y;		
-	local corecfg = LXZGetCfg();
-	if AppData.isclickdown==true and (corecfg.IsClickDown == true or  corecfg.IsClickDown == 1 ) then	
-		if math.abs(ax)>math.abs(ay) then
-			pt.y = AppData.from.y;
-			pt.x = AppData.to.x;		
-			if AppData.to.x > rect.right then
-				AppData.from.x = rect.right;
-			elseif AppData.to.x<rect.left then
-				AppData.from.x = rect.left;
-			end
-		else
-			pt.y = AppData.to.y;
-			pt.x = AppData.from.x;		
-			if AppData.to.y > rect.bottom then
-				AppData.from.y = rect.bottom;
-			elseif AppData.to.y<rect.top then
-				AppData.from.y = rect.top;
-			end			
-		end
-		dc:DrawLine(AppData.from, pt, AppData.color);	
-		dc:DrawLine(pt, AppData.to, AppData.color);	
-	end
-	--LXZMessageBox("OnTest:"..sender:GetName());
-end
-
-local function OnTweenClickDown(window, msg, sender)
-	--LXZMessageBox("OnTest:"..sender:GetName());	
-	local root = HelperGetRoot();
-	AppData.current.x = msg:int();
-	AppData.current.y = msg:int();	
-	
-	local rect = LXZRect:new_local();
-	sender:GetRect(rect);	
-	rect:Deflate(10,10,10,10);
-	if rect:IsIncludePoint(AppData.current) then
-		HelperSetResizeWindow(sender);
-	else
-		HelperSetCursorState(2);
-		AppData.org.x = AppData.current.x;
-		AppData.org.y = AppData.current.y;
-		AppData.isclickdown=true;
-		AppData.wnd = sender;
-	end	
-	
-	
-end
-
-local function OnTweenClickUp(window, msg, sender)
-	--LXZMessageBox("OnTest:"..sender:GetName());
-	AppData.isclickdown=false;
-	if sender:GetChild("menus") then
-		sender:GetChild("menus"):Show();
-	end
-
-end
-
-local function OnTweenMouseMove(window, msg, sender)
-	--LXZMessageBox("OnTest:"..sender:GetName());
-end
 
 local function OnWillAddElement(window, msg, sender)
 	local root = HelperGetRoot();
@@ -222,27 +184,30 @@ local function OnDropElement(window, msg, sender)
 	local wnd = root:GetLXZWindow("system:cursor");
 	HelperSetEmbededWindow(wnd, "");	
 	
-	local canvas = root:GetLXZWindow("canvas");
-	if canvas:GetChild("start") ~= nil and sender:GetName()=="start" then
-		return;
+	local layer = nil;
+	if sender:GetName()=="link" then
+		layer = root:GetLXZWindow("canvas:link layer");			
+	else
+		layer = root:GetLXZWindow("canvas:tween layer");
+		if layer:GetChild("start") ~= nil and sender:GetName()=="start" then
+			return;
+		end
+		
+		if layer:GetChild("end") ~= nil and sender:GetName()=="end" then
+			return;
+		end
 	end
-	
-	if canvas:GetChild("end") ~= nil and sender:GetName()=="end" then
-		return;
-	end
-	
+			
 	local pt = LXZPoint:new_local();
 	pt.x = msg:int();
-	pt.y = msg:int();
-		
+	pt.y = msg:int();		
 	local wnd = root:GetLXZWindow("system:"..sender:GetName());
 	local tween = wnd:Clone();
-	canvas:AddChild(tween);
+	layer:AddChild(tween);
 	tween:SetHotPos(pt, true);
 	if tween:GetChild("menus") then
 		tween:GetChild("menus"):Hide();
 	end
-		
 	
 	--LXZMessageBox("OnDropElement:".. sender:GetName());
 end
@@ -553,13 +518,10 @@ end
 local event_callback = {}
 event_callback ["OnLoad"] = OnLoad;
 event_callback ["OnUpdate"] = OnUpdate;
-event_callback ["OnTweenRender"] = OnTweenRender;
-event_callback ["OnTweenClickDown"] = OnTweenClickDown;
-event_callback ["OnTweenClickUp"] = OnTweenClickUp;
-event_callback ["OnTweenMouseMove"] = OnTweenMouseMove;
 event_callback ["OnWillAddElement"] = OnWillAddElement;
 event_callback ["OnCanvasMouseMove"] = OnCanvasMouseMove;
 event_callback ["OnCanvasClickUp"] = OnCanvasClickUp;
+event_callback ["OnCanvasClickDown"] = OnCanvasClickDown;
 event_callback ["OnCursorMove"] = OnCursorMove;
 event_callback ["OnDropElement"] = OnDropElement;
 event_callback ["OnPropertyMsg"] = OnPropertyMsg;

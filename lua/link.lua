@@ -1,11 +1,4 @@
 
-local STATE_LINK_EMPTY= 0;
-local STATE_LINK_IN          = 1;
-local STATE_LINK_OUT      = 2;
-local STATE_LINK_ALL       = 3;
-local STATE_LINKING_IN    = 4;
-local STATE_LINKING_OUT= 5;
-
 local AppData = {};
 AppData.state = 0;
 AppData.isclickdown=false;
@@ -32,20 +25,19 @@ local function OnSysLClickDown(window, msg, sender)
 	local pt = LXZPoint:new_local();
 	pt.x = msg:int();
 	pt.y = msg:int();
+	AppData.current.x=pt.x;
+	AppData.current.y=pt.y;
 	
-	if AppData.state==STATE_LINK_EMPTY then
-		local pos = get_from(sender);
-		local vec=LXZVector2D:new_local();
-		vec.x=pos.x-pt.x;
-		vec.y=pos.y-pt.y;
-		if math.sqrt(vec.x*vec.x+vec.y*vec.y)<10 then
-			AppData.state=STATE_LINKING_IN;
-			AppData.current.x=pt.x;
-			AppData.current.y=pt.y;
-			--LXZMessageBox("OnSysLClickDown:SATE_LINKING_IN");
-		end
+	local wnd = sender:HitTest0(pt.x,pt.y);
+	if wnd == nil then
+		AppData.drag_wnd=nil;
+		return;
 	end
 	
+	if wnd:GetName()=="in" or wnd:GetName()=="out" then
+		AppData.drag_wnd = wnd;
+	end	
+
 end
 
 local function OnSysMouseMove(window, msg, sender)
@@ -55,6 +47,11 @@ local function OnSysMouseMove(window, msg, sender)
 
 	AppData.current.x=pt.x;
 	AppData.current.y=pt.y;
+	
+	if AppData.drag_wnd then
+		AppData.drag_wnd:SetHotPos(pt, true);
+	end
+	
 end
 
 local function OnSysLClickUp(window, msg, sender)
@@ -71,7 +68,7 @@ AppData.color.alpha  = 100;
 
 local function OnUserRender(window, msg, sender)
 	local root = HelperGetRoot();
-	local canvas = root:GetLXZWindow("canvas");
+	local canvas = root:GetLXZWindow("canvas:tween layer");
 	
 	local dc = LXZAPI_GetDC();
 	dc:SetBlendMode(BM_BLEND);
@@ -79,52 +76,56 @@ local function OnUserRender(window, msg, sender)
 	sender:GetRect(AppData.rect);	
 	local rect = AppData.rect;
 	
+	local pt = LXZPoint:new_local();
 	local from = rect:TopLeft();
 	local to     = rect:BottomLeft();
 	from.x = from.x+rect:Width()/2;
 	to.x = to.x+rect:Width()/2;
 	
-	if AppData.state==STATE_LINK_EMPTY then
-		AppData.color.red     = 100;
-		dc:DrawLine(from, to, AppData.color);
-	elseif AppData.state==STATE_LINKING_IN then
-		AppData.color.red     = 100;
-		dc:DrawLine(from, to, AppData.color);
+	AppData.color.red     = 100;
+	dc:DrawLine(from, to, AppData.color);
+	
+	sender:GetChild("in"):GetHotPos(pt, true);
+	dc:DrawLine(from, pt, AppData.color);
+	
+	sender:GetChild("out"):GetHotPos(pt, true);
+	dc:DrawLine(to, pt, AppData.color);
+	
+	local wnd = canvas:HitTest0(AppData.current.x, AppData.current.y);
+	if wnd then
+		local rc = LXZRect:new_local();
+		wnd:GetRect(rc);
+		rc:Deflate(5,5,5,5);
 		
-		AppData.color.red     = 150;
-		dc:DrawLine(from, AppData.current, AppData.color);
+		LXZAPI_OutputDebugStr ("HitTest0:".. wnd:GetName());
 		
-		local wnd = canvas:HitTest(AppData.current.x, AppData.current.y);
-		if wnd and wnd:GetClassName()=="tween" then
-			local rc = LXZRect:new_local();
-			rc.left = AppData.current.x-5;
-			rc.right = AppData.current.x+5;
-			rc.bottom = AppData.current.y+5;
-			rc.top = AppData.current.y-5;			
+		if  wnd:GetClassName()=="in" then
+			if AppData.drag_wnd:GetName()=="in" then
+				AppData.color.green=0;
+				AppData.color.red     = 255;
+			else
+				AppData.color.green=255;
+				AppData.color.red     = 0;
+			end
+			dc:DrawRect(rc, AppData.color);
+		elseif wnd:GetClassName()=="out" then		
+			if AppData.drag_wnd:GetName()=="in" then
+				AppData.color.green= 255;
+				AppData.color.red     = 0;
+			else
+				AppData.color.green=0;
+				AppData.color.red     =255;
+			end
 			dc:DrawRect(rc, AppData.color);
 		end
-	elseif AppData.state==STATE_LINKING_OUT then
-		AppData.color.red     = 100;
-		dc:DrawLine(from, to, AppData.color);
-		
-		AppData.color.red     = 150;
-		dc:DrawLine(to, AppData.current, AppData.color);
-		
-		local wnd = canvas:HitTest(AppData.current.x, AppData.current.y);
-		if wnd and wnd:GetClassName()=="tween" then
-			local rc = LXZRect:new_local();
-			rc.left = AppData.current.x-5;
-			rc.right = AppData.current.x+5;
-			rc.bottom = AppData.current.y+5;
-			rc.top = AppData.current.y-5;			
-			dc:DrawRect(rc, AppData.color);
-		end
-	elseif AppData.state==STATE_LINK_IN then
-		local in_ = sender:GetChild("in");
-		
 	end
 	
+	AppData.color.green=255;
+	AppData.color.red     =255;
+	
 end
+
+--module ("copas", package.seeall)
 
 local event_callback = {}
 event_callback ["OnSysLClickDown"] = OnSysLClickDown;
@@ -139,3 +140,4 @@ function link_main_dispacher(window, cmd, msg, sender)
 		event_callback[cmd](window, msg, sender);
 	end
 end
+
