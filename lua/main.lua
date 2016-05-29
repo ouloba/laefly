@@ -504,17 +504,6 @@ local function OnTreeIconItem(window, msg, sender)
 	--w:ProcMessage("OnArray", msg, w);
 end
 
-local function OnCanvasMenuItem(window, msg, sender)
-	local root = HelperGetRoot();
-	if sender:GetName()=="edit" then
-		root:GetLXZWindow("head:tween_info_btn"):SetState(1);				
-		root:GetLXZWindow("tween info"):Show();
-	elseif sender:GetName()=="delete" then
-		local element = sender:GetParent():GetParent();
-		element:Delete();				
-	end	
-end
-
 local event_callback = {}
 event_callback ["OnLoad"] = OnLoad;
 event_callback ["OnUpdate"] = OnUpdate;
@@ -534,9 +523,7 @@ event_callback ["OnHeadBtnItem"] =OnHeadBtnItem;
 event_callback ["OnFileMenus"] =OnFileMenus;
 event_callback ["OnFileMenuItem"] =OnFileMenuItem;
 event_callback ["OnTreeIconItem"] =OnTreeIconItem;
-
 event_callback ["OnTreeItemRender"] = OnTreeItemRender;
-event_callback ["OnCanvasMenuItem"] = OnCanvasMenuItem;
 
 function main_dispacher(window, cmd, msg, sender)
 ---	LXZAPI_OutputDebugStr("cmd 1:"..cmd);

@@ -21,7 +21,7 @@ local function OnSysLClickDown(window, msg, sender)
 	pt.y = msg:int();
 
 	local root = HelperGetRoot();
-	local wnd = root:GetLXZWindow(sender:GetAddString());
+	local wnd = CLXZWindow:FromHandle(sender:GetAddData());
 	if wnd == nil then
 		LXZAPI_OutputDebugStr("0 AddString:".. sender:GetAddString());
 		return;
@@ -36,9 +36,6 @@ local function OnSysLClickDown(window, msg, sender)
 		LXZAPI_OutputDebugStr("2 AddString:".. sender:GetAddString());
 		HelperSetCursorState(HelperGetCursorState("normal"));
 		HelperSetResizeWindow(nil);
-		if wnd:GetChild("menus") then
-		    wnd:GetChild("menus"):Hide();
-		end
 		return;
 	end
 	
@@ -100,7 +97,7 @@ local function OnSysMouseMove(window, msg, sender)
 	end
 	
 	local root = HelperGetRoot();
-	local wnd = root:GetLXZWindow(sender:GetAddString());
+	local wnd = CLXZWindow:FromHandle(sender:GetAddData());
 	if wnd == nil then
 		return;
 	end
@@ -108,6 +105,13 @@ local function OnSysMouseMove(window, msg, sender)
 	--save
 	wnd:GetRect(AppData.wnd_rect);
 	sender:GetRect(AppData.self_rect);
+	
+	local menus = root:GetLXZWindow("menus");
+	local rc = AppData.self_rect;
+	local pt1 = rc:TopRight();
+	pt1.x = pt1.x-menus:GetWidth()/2;
+	pt1.y = pt1.y-menus:GetHeight()/2;
+	menus:SetHotPos(pt1,true);
 	
 	local old_self=LXZPoint:new_local();
 	local old_wnd=LXZPoint:new_local();
@@ -190,7 +194,7 @@ local function OnSysLClickUp(window, msg, sender)
 	local x = msg:int();
 	local y = msg:int();
 	AppData.isclickdown=false;
-	if sender:HitTest(x,y)==false then
+	if sender:HitTest(x,y)==nil then
 		HelperSetResizeWindow(nil);
 	end
 end
@@ -203,9 +207,9 @@ AppData.color.alpha  = 100;
 
 local function OnUserRender(window, msg, sender)
 	local root = HelperGetRoot();
-	local wnd = root:GetLXZWindow(sender:GetAddString());
+	local wnd = CLXZWindow:FromHandle(sender:GetAddData());
 	if wnd == nil then
-		sender:Hide();
+		sender:Hide();		
 		return;
 	end
 	--[[
@@ -226,23 +230,50 @@ end
 
 function HelperSetResizeWindow(wnd)	
 	local root = HelperGetRoot();
+	local menus=root:GetLXZWindow("menus");
 	local window = root:GetLXZWindow(AppData.resize_name);
 	if wnd==nil then
-		window:SetAddString("");
+		window:SetAddData(0);
 		window:Hide();		
+		menus:Hide();
 		LXZAPI_OutputDebugStr("HelperSetResizeWindow Hide,"..AppData.resize_name);
 		return;
 	end
 	
+	local rc = LXZRect:new_local();
 	local pos = LXZPoint:new_local();	
 	wnd:GetHotPos(pos, true);		
 	window:SetWidth(wnd:GetWidth()+20);
 	window:SetHeight(wnd:GetHeight()+20);
-	window:SetAddString(wnd:GetLongName());
+	window:SetAddData(wnd:GetWindowHandle());
 	window:Show();
 	window:SetHotPos(pos, true);
-	HelperSetCursorState(HelperGetCursorState("drag"));
-	--LXZMessageBox("AddString:"..wnd:GetLongName().." window:"..resize:GetName());
+	window:GetRect(rc);
+	local pt = rc:TopRight();
+	pt.x = pt.x-menus:GetWidth()/2;
+	pt.y = pt.y-menus:GetHeight()/2;
+	HelperSetCursorState(HelperGetCursorState("drag"));	
+	menus:Show();
+	menus:SetHotPos(pt, true);
+	LXZAPI_OutputDebugStr("AddString:"..wnd:GetWindowHandle().." window:"..wnd:GetLongName());
+end
+
+local function OnMenuItems(window, msg, sender)
+	
+	local root = HelperGetRoot();
+	local window = root:GetLXZWindow(AppData.resize_name);
+	if sender:GetName()=="edit" then
+		local wnd = root:GetLXZWindow("tween info");
+		wnd:Show();
+	elseif sender:GetName()=="delete" then
+		local handle = window:GetAddData();
+	--	LXZMessageBox("OnMenuItems:".. sender:GetName().." handle:"..handle);
+		local wnd = CLXZWindow:FromHandle(handle);
+		if wnd then
+			wnd:Delete();
+		end
+		window:SetAddData(0);
+	end
 end
 
 local event_callback = {}
@@ -251,6 +282,7 @@ event_callback ["OnSysLClickDown"] = OnSysLClickDown;
 event_callback ["OnSysMouseMove"] = OnSysMouseMove;
 event_callback ["OnSysLClickUp"] = OnSysLClickUp;
 event_callback ["OnUserRender"] = OnUserRender;
+event_callback ["OnMenuItems"] = OnMenuItems;
 
 function resize_main_dispacher(window, cmd, msg, sender)
 ---	LXZAPI_OutputDebugStr("cmd 1:"..cmd);
