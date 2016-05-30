@@ -41,7 +41,7 @@ local function OnSysLClickDown(window, msg, sender)
 		else
 			LXZAPI_OutputDebugStr("OnSysLClickDown 2222");
 		end	
-		LXZAPI_OutputDebugStr("OnSysLClickDown 111");
+		LXZAPI_OutputDebugStr("OnSysLClickDown 111:"..wnd:GetName());
 	else
 		AppData.drag_wnd=nil;
 		LXZAPI_OutputDebugStr("OnSysLClickDown nil");
@@ -61,6 +61,8 @@ local function OnSysMouseMove(window, msg, sender)
 	
 	if AppData.drag_wnd then
 		AppData.drag_wnd:SetHotPos(pt, true);
+		LXZAPI_OutputDebugStr("drag_wnd:"..AppData.drag_wnd:GetLongName())
+		
 		local handle = AppData.drag_wnd:GetAddData();
 		local wnd = CLXZWindow:FromHandle(handle);
 		if wnd and wnd:Distance(AppData.drag_wnd)>20 then
@@ -129,7 +131,7 @@ local function OnSysLClickUp(window, msg, sender)
 	local x = msg:int();
 	local y = msg:int();
 	AppData.isclickdown=false;
-	
+		
 	local root = HelperGetRoot();
 	local tween_layer = root:GetLXZWindow("canvas:tween layer");
 	local wnd = tween_layer:HitTest0(AppData.current.x, AppData.current.y);
@@ -164,6 +166,11 @@ local function DrawInOutBox(window)
 	end
 end
 
+local function DrawArrow(from, to)
+	local vec = LXZVector2D:new_local(to.x-from.x, to.y-from.y);
+	vec:normalize();	
+end
+
 local function OnUserRender(window, msg, sender)
 	local root = HelperGetRoot();
 	local tween_layer = root:GetLXZWindow("canvas:tween layer");
@@ -190,6 +197,7 @@ local function OnUserRender(window, msg, sender)
 		in_link:GetHotPos(pt1, true);
 		out_link:GetHotPos(pt, true);
 		dc:DrawLine(pt1, pt, AppData.color);
+		--HelperShowRender(out_,"Picture", true);
 	elseif in_link then
 		out_:GetHotPos(pt1, true);
 		in_link:GetHotPos(pt, true);
@@ -198,6 +206,7 @@ local function OnUserRender(window, msg, sender)
 		rc:Deflate(6,6,6,6);
 		dc:FillRect(rc, AppData.color);
 		out_:SetAddData(0);
+		--HelperShowRender(out_,"Picture", false);
 	elseif out_link then
 		in_:GetHotPos(pt1, true);
 		out_link:GetHotPos(pt, true);
@@ -206,6 +215,7 @@ local function OnUserRender(window, msg, sender)
 		rc:Deflate(6,6,6,6);
 		dc:FillRect(rc, AppData.color);
 		in_:SetAddData(0);
+		--HelperShowRender(out_,"Picture", true);
 	else
 		in_:SetAddData(0);
 		out_:SetAddData(0);

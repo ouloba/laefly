@@ -24,10 +24,6 @@ end
 local function OnTweenClickUp(window, msg, sender)
 	--LXZMessageBox("OnTest:"..sender:GetName());
 	AppData.isclickdown=false;
-	if sender:GetChild("menus") then
-		sender:GetChild("menus"):Show();
-	end
-
 end
 
 local function OnTweenMouseMove(window, msg, sender)

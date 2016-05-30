@@ -61,37 +61,67 @@ local function OnUpdate(window, msg, sender)
 	UpdateWindow();
 end
 
+local function GetParentByClass(wnd,cls)
+	local parent = wnd;
+	while parent do
+		if parent:GetClassName()==cls then
+			return parent;
+		end	
+		parent=parent:GetParent();
+	end
+end
+
 local function  transfer_msg(x, y, cmd)	
 	local root = HelperGetRoot();
 	local canvas = root:GetLXZWindow("canvas");
-	local wnd = root:HitTest(x,y);
-	if canvas:IsChild(wnd)==false and canvas~=wnd then
+	local wnd = root:HitTest(x,y,true);
+	if canvas:IsChild(wnd)==false and canvas~=wnd then		
+		if wnd then
+			LXZAPI_OutputDebugStr("transfer_msg sss:"..cmd.." wnd:"..wnd:GetLongName());	
+		end
 		return;
 	end
 	
 	local msg = CLXZMessage:new_local();
 	msg:int(x);
 	msg:int(y);	
-		
-	--LXZMessageBox("transfer_msg x:"..x.." y:"..y);
-	local tween_layer = root:GetLXZWindow("canvas:tween layer");
-	local hit = tween_layer:HitTest0(x, y);
-	if hit then		
-		return hit:ProcMessage(cmd, msg, hit);
+	
+	local move_wnd=CLXZWindow:FromHandle(MOVE_HANDLE);
+	if cmd=="OnSysMouseMove" and move_wnd then
+		 return move_wnd:ProcMessage(cmd, msg, move_wnd);
 	end
-		
+	
 	local tween_layer = root:GetLXZWindow("canvas:link layer");
-	local hit = tween_layer:HitTest0(x, y);
-	if hit then
-		return hit:ProcMessage(cmd, msg, hit);
+	local hit = tween_layer:HitTest0(x, y,false);
+	if hit then	
+		hit=GetParentByClass(hit,"link");
+		LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." hit:"..hit:GetLongName());				
+		 hit:ProcMessage(cmd, msg, hit);
+		 if cmd=="OnSysLClickDown" then
+			MOVE_HANDLE=hit:GetWindowHandle();
+		end
+		return;
 	end
+	
+	local tween_layer = root:GetLXZWindow("canvas:tween layer");
+	local hit = tween_layer:HitTest0(x, y,false);
+	if hit then		
+		LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." hit:"..hit:GetLongName());
+		hit=GetParentByClass(hit,"tween");
+		hit:ProcMessage(cmd, msg, hit);
+		if cmd=="OnSysLClickDown" then
+			MOVE_HANDLE=hit:GetWindowHandle();
+		end
+	end
+	
+	LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." x:"..x.." y:"..y);
 end
 
 local function OnCanvasMouseMove(window, msg, sender)
 	local pt = LXZPoint:new_local();
 	local x = msg:int();
 	local y = msg:int();
-	--transfer_msg(x,y, "OnSysMouseMove");
+	transfer_msg(x,y, "OnSysMouseMove");
 end
 
 local function OnCanvasClickUp(window, msg, sender)

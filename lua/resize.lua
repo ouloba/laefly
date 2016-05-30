@@ -270,6 +270,19 @@ local function OnMenuItems(window, msg, sender)
 	--	LXZMessageBox("OnMenuItems:".. sender:GetName().." handle:"..handle);
 		local wnd = CLXZWindow:FromHandle(handle);
 		if wnd then
+			local child = wnd:GetFirstChild();
+			while child do
+				if child:GetClassName()=='in' or child:GetClassName()=='out' then
+					local handle=child:GetAddData();
+					local node = CLXZWindow:FromHandle(handle);
+					if node then
+						node:SetAddData(0);
+					end
+				end
+			
+				child = child:GetNextSibling();
+			end
+		
 			wnd:Delete();
 		end
 		window:SetAddData(0);
@@ -278,9 +291,9 @@ end
 
 local event_callback = {}
 event_callback ["OnLoad"] = OnLoad;
-event_callback ["OnSysLClickDown"] = OnSysLClickDown;
-event_callback ["OnSysMouseMove"] = OnSysMouseMove;
-event_callback ["OnSysLClickUp"] = OnSysLClickUp;
+event_callback ["OnResizeLClickDown"] = OnSysLClickDown;
+event_callback ["OnResizeMouseMove"] = OnSysMouseMove;
+event_callback ["OnResizeLClickUp"] = OnSysLClickUp;
 event_callback ["OnUserRender"] = OnUserRender;
 event_callback ["OnMenuItems"] = OnMenuItems;
 
