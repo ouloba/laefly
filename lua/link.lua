@@ -4,6 +4,7 @@ AppData.state = 0;
 AppData.isclickdown=false;
 AppData.rect = LXZRect:new();
 AppData.current = LXZPoint:new();
+AppData.current_link_handle = 0;
 
 local function get_from(wnd)
 	wnd:GetRect(AppData.rect);	
@@ -32,18 +33,21 @@ local function OnSysLClickDown(window, msg, sender)
 	local wnd = sender:HitTest0(pt.x,pt.y);
 	if wnd == nil then
 		AppData.drag_wnd=nil;
+		AppData.current_link_handle=0;
 		return;
 	end
-	
+		
 	if AppData.drag_wnd== nil then
 		if wnd:GetName()=="in" or wnd:GetName()=="out" then
 			AppData.drag_wnd = wnd;
+			AppData.current_link_handle=sender:GetWindowHandle();
 		else
 			LXZAPI_OutputDebugStr("OnSysLClickDown 2222");
 		end	
 		LXZAPI_OutputDebugStr("OnSysLClickDown 111:"..wnd:GetName());
 	else
 		AppData.drag_wnd=nil;
+		AppData.current_link_handle=0;
 		LXZAPI_OutputDebugStr("OnSysLClickDown nil");
 	end
 	
@@ -149,6 +153,12 @@ AppData.color.green = 192;
 AppData.color.blue    = 192;
 AppData.color.alpha  = 100;
 
+AppData.sel_color    = RGBA:new();
+AppData.sel_color.red     = 192;
+AppData.sel_color.green = 192;
+AppData.sel_color.blue    = 100;
+AppData.sel_color.alpha  = 150;
+
 local function DrawInOutBox(window)
 	if AppData.drag_wnd == nil then
 		return;
@@ -169,6 +179,13 @@ end
 local function DrawArrow(from, to)
 	local vec = LXZVector2D:new_local(to.x-from.x, to.y-from.y);
 	vec:normalize();	
+end
+
+local function get_color(wnd)
+	if AppData.current_link_handle==wnd:GetWindowHandle() then
+		return AppData.sel_color;
+	end
+	return AppData.color;
 end
 
 local function OnUserRender(window, msg, sender)
@@ -196,12 +213,12 @@ local function OnUserRender(window, msg, sender)
 	if in_link and out_link then
 		in_link:GetHotPos(pt1, true);
 		out_link:GetHotPos(pt, true);
-		dc:DrawLine(pt1, pt, AppData.color);
+		dc:DrawLine(pt1, pt, get_color(sender));
 		--HelperShowRender(out_,"Picture", true);
 	elseif in_link then
 		out_:GetHotPos(pt1, true);
 		in_link:GetHotPos(pt, true);
-		dc:DrawLine(pt1, pt, AppData.color);
+		dc:DrawLine(pt1, pt, get_color(sender));
 		out_:GetRect(rc);
 		rc:Deflate(6,6,6,6);
 		dc:FillRect(rc, AppData.color);
@@ -210,7 +227,7 @@ local function OnUserRender(window, msg, sender)
 	elseif out_link then
 		in_:GetHotPos(pt1, true);
 		out_link:GetHotPos(pt, true);
-		dc:DrawLine(pt1, pt, AppData.color);
+		dc:DrawLine(pt1, pt, get_color(sender));
 		in_:GetRect(rc);
 		rc:Deflate(6,6,6,6);
 		dc:FillRect(rc, AppData.color);
@@ -222,7 +239,7 @@ local function OnUserRender(window, msg, sender)
 	
 		in_:GetHotPos(pt1, true);
 		out_:GetHotPos(pt, true);
-		dc:DrawLine(pt1, pt, AppData.color);
+		dc:DrawLine(pt1, pt, get_color(sender));
 		
 		out_:GetRect(rc);
 		rc:Deflate(6,6,6,6);
@@ -285,12 +302,41 @@ local function OnNodeShouldMove(window, msg, sender)
 	
 end
 
+local function OnSysKeyDown(window, msg, sender)
+	local u4Key = msg:uint32();
+	if u4Key==LXZKEY_DELETE then
+		local handle = AppData.current_link_handle;
+		local wnd = CLXZWindow:FromHandle(handle);
+		if wnd then
+			local out_ = wnd:GetChild("out");	
+			local in_ = wnd:GetChild("in");
+						
+			local handle_in = in_:GetAddData();
+			local handle_out = out_:GetAddData();
+				
+			local rc = LXZRect:new_local();	
+			local in_link = CLXZWindow:FromHandle(handle_in);
+			local out_link = CLXZWindow:FromHandle(handle_out);
+			if in_link then
+				in_link:SetAddData(0);
+			end
+			
+			if out_link then
+				out_link:SetAddData(0);
+			end
+	
+			AppData.current_link_handle=0;
+			wnd:Delete();
+		end
+	end
+end
 --module ("copas", package.seeall)
 
 local event_callback = {}
 event_callback ["OnLinkLClickDown"] = OnSysLClickDown;
 event_callback ["OnLinkMouseMove"] = OnSysMouseMove;
 event_callback ["OnLinkLClickUp"] = OnSysLClickUp;
+event_callback ["OnLinkKeyDown"] = OnSysKeyDown;
 event_callback ["OnUserRender"] = OnUserRender;
 event_callback ["OnNodeShouldMove"] = OnNodeShouldMove;
 

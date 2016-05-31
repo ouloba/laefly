@@ -89,6 +89,8 @@ local function  transfer_msg(x, y, cmd)
 	local move_wnd=CLXZWindow:FromHandle(MOVE_HANDLE);
 	if cmd=="OnSysMouseMove" and move_wnd then
 		 return move_wnd:ProcMessage(cmd, msg, move_wnd);
+	elseif cmd=="OnSysLClickDown" and move_wnd then
+		move_wnd:ProcMessage(cmd, msg, move_wnd);
 	end
 	
 	local tween_layer = root:GetLXZWindow("canvas:link layer");
@@ -131,7 +133,12 @@ local function OnCanvasClickUp(window, msg, sender)
 	transfer_msg(x,y, "OnSysLClickUp");
 end
 
-
+local function OnCanvasKeyDown(window, msg, sender)	
+	local move_wnd=CLXZWindow:FromHandle(MOVE_HANDLE);
+	if move_wnd then
+		 return move_wnd:ProcMessage("OnSysKeyDown", msg, move_wnd);
+	end	
+end
 
 local function OnCanvasClickDown(window, msg, sender)
 	local pt = LXZPoint:new_local();
@@ -541,6 +548,7 @@ event_callback ["OnWillAddElement"] = OnWillAddElement;
 event_callback ["OnCanvasMouseMove"] = OnCanvasMouseMove;
 event_callback ["OnCanvasClickUp"] = OnCanvasClickUp;
 event_callback ["OnCanvasClickDown"] = OnCanvasClickDown;
+event_callback ["OnCanvasKeyDown"] = OnCanvasKeyDown;
 event_callback ["OnCursorMove"] = OnCursorMove;
 event_callback ["OnDropElement"] = OnDropElement;
 event_callback ["OnPropertyMsg"] = OnPropertyMsg;

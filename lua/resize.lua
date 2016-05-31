@@ -258,15 +258,10 @@ function HelperSetResizeWindow(wnd)
 	LXZAPI_OutputDebugStr("AddString:"..wnd:GetWindowHandle().." window:"..wnd:GetLongName());
 end
 
-local function OnMenuItems(window, msg, sender)
-	
+local function delete_tween()
 	local root = HelperGetRoot();
 	local window = root:GetLXZWindow(AppData.resize_name);
-	if sender:GetName()=="edit" then
-		local wnd = root:GetLXZWindow("tween info");
-		wnd:Show();
-	elseif sender:GetName()=="delete" then
-		local handle = window:GetAddData();
+	local handle = window:GetAddData();
 	--	LXZMessageBox("OnMenuItems:".. sender:GetName().." handle:"..handle);
 		local wnd = CLXZWindow:FromHandle(handle);
 		if wnd then
@@ -286,7 +281,27 @@ local function OnMenuItems(window, msg, sender)
 			wnd:Delete();
 		end
 		window:SetAddData(0);
+		root:GetLXZWindow("menus"):Hide();
+end
+
+local function OnMenuItems(window, msg, sender)
+	
+	local root = HelperGetRoot();
+	local window = root:GetLXZWindow(AppData.resize_name);
+	if sender:GetName()=="edit" then
+		local wnd = root:GetLXZWindow("tween info");
+		wnd:Show();
+	elseif sender:GetName()=="delete" then
+		delete_tween();
 	end
+end
+
+
+local function OnKeyDown(window, msg, sender)
+		local u4Key = msg:uint32();
+		if u4Key==LXZKEY_DELETE then
+			delete_tween();
+		end
 end
 
 local event_callback = {}
@@ -296,6 +311,7 @@ event_callback ["OnResizeMouseMove"] = OnSysMouseMove;
 event_callback ["OnResizeLClickUp"] = OnSysLClickUp;
 event_callback ["OnUserRender"] = OnUserRender;
 event_callback ["OnMenuItems"] = OnMenuItems;
+event_callback ["OnResizeKeyDown"] = OnKeyDown;
 
 function resize_main_dispacher(window, cmd, msg, sender)
 ---	LXZAPI_OutputDebugStr("cmd 1:"..cmd);
