@@ -133,6 +133,20 @@ local function OnCanvasClickUp(window, msg, sender)
 	transfer_msg(x,y, "OnSysLClickUp");
 end
 
+local function OnCanvasDrag(window, msg, sender)
+	local pt = LXZPoint:new_local();
+	local x = msg:int();
+	local y = msg:int();
+	transfer_msg(x,y, "OnDrag");
+end
+
+local function OnCanvasDBClick(window, msg, sender)
+	local pt = LXZPoint:new_local();
+	local x = msg:int();
+	local y = msg:int();
+	transfer_msg(x,y, "OnSysDBClick");
+end
+
 local function OnCanvasKeyDown(window, msg, sender)	
 	local move_wnd=CLXZWindow:FromHandle(MOVE_HANDLE);
 	if move_wnd then
@@ -411,6 +425,22 @@ local function OnPropertyMsg_close_dictions(window, msg, sender)
 	root:GetLXZWindow("head:dictions_btn"):SetState(0);
 end
 
+local function  OnPropertyMsg_trigger(window, msg, sender)
+	local wnd = sender:GetChild("select");
+		
+	if wnd:GetState()==0 then
+		wnd:SetState(1);
+	else
+		wnd:SetState(0);
+	end
+	
+	if sender:GetName()=="once" then
+		
+	elseif sender:GetName()=="end" then
+	
+	end
+end
+
 
 local property_callback ={};
 property_callback["tween info:property:repeat:value:arrow"] = OnPropertyMsg_repeat_arrow;
@@ -425,6 +455,10 @@ property_callback["tween info:close_btn"] = OnPropertyMsg_close_tween_info;
 property_callback["ui tree:head:close_btn"] = OnPropertyMsg_close_ui_tree;
 property_callback["ui tree:head:open_btn"] = OnPropertyMsg_open_ui_tree;
 property_callback["dictions:close_btn"] = OnPropertyMsg_close_dictions;
+
+property_callback["tween info:property:trigger:once"] = OnPropertyMsg_trigger;
+property_callback["tween info:property:trigger:end"] = OnPropertyMsg_trigger;
+
 
 
 
@@ -513,6 +547,39 @@ local function OnFileMenus(window, msg, sender)
 	root:GetLXZWindow("head:file_menu:menus"):Show();
 end
 
+local function CheckTweenInfo()
+	local root = HelperGetRoot();
+	local tween_layer = root:GetLXZWindow("canvas:tween layer");
+	local start = tween_layer:GetChild("start");
+	local end_ = tween_layer:GetChild("end");
+	local str = "";
+	if start == nil then
+		str = str.."start button doesn't  exist";
+	end
+	
+	if end_ == nil then
+		str = str.."end button doesn't  exist";
+	end
+	
+	
+	
+	
+end
+
+local function  TraceTweenInfo()
+	
+	
+
+end
+
+local function ExportTweenInfoToFile(filename,data)
+	local dir = LXZAPIGetWritePath();	
+	local file = io.open(dir..filename, "w+");
+	if file then	
+		file:write(data);	
+		file:close();
+	end
+end
 
 local function OnFileMenuItem(window, msg, sender)
 	local root = HelperGetRoot();
@@ -522,6 +589,11 @@ local function OnFileMenuItem(window, msg, sender)
 	if sender:GetName()=="new" then
 	elseif sender:GetName()=="open" then
 	elseif sender:GetName()=="save" then
+		if CheckTweenInfo()==false then
+			return;
+		end
+		
+		ExportTweenInfo(TraceTweenInfo());
 	end
 	
 end
@@ -541,6 +613,18 @@ local function OnTreeIconItem(window, msg, sender)
 	--w:ProcMessage("OnArray", msg, w);
 end
 
+local function OnEditWaitTimerOk(window, msg, sender)
+	local root = HelperGetRoot();
+	local wnd = root:GetLXZWindow("wait timer input");
+	wnd:Hide();
+	local text = HelperGetWindowText(wnd:GetChild("value"));
+	local window=CLXZWindow:FromHandle(wnd:GetAddData());
+	if window then
+		HelperSetWindowText(window, "µÈ´ý:"..text.."ms");
+	end	
+end
+
+
 local event_callback = {}
 event_callback ["OnLoad"] = OnLoad;
 event_callback ["OnUpdate"] = OnUpdate;
@@ -549,6 +633,9 @@ event_callback ["OnCanvasMouseMove"] = OnCanvasMouseMove;
 event_callback ["OnCanvasClickUp"] = OnCanvasClickUp;
 event_callback ["OnCanvasClickDown"] = OnCanvasClickDown;
 event_callback ["OnCanvasKeyDown"] = OnCanvasKeyDown;
+event_callback ["OnCanvasDrag"] = OnCanvasDrag;
+event_callback ["OnCanvasDBClick"] = OnCanvasDBClick;
+
 event_callback ["OnCursorMove"] = OnCursorMove;
 event_callback ["OnDropElement"] = OnDropElement;
 event_callback ["OnPropertyMsg"] = OnPropertyMsg;
@@ -562,6 +649,7 @@ event_callback ["OnFileMenus"] =OnFileMenus;
 event_callback ["OnFileMenuItem"] =OnFileMenuItem;
 event_callback ["OnTreeIconItem"] =OnTreeIconItem;
 event_callback ["OnTreeItemRender"] = OnTreeItemRender;
+event_callback ["OnEditWaitTimerOk"] = OnEditWaitTimerOk;
 
 function main_dispacher(window, cmd, msg, sender)
 ---	LXZAPI_OutputDebugStr("cmd 1:"..cmd);

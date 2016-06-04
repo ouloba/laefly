@@ -32,7 +32,9 @@ local function OnSysLClickDown(window, msg, sender)
 	wnd:GetRect(AppData.wnd_rect);
 	sender:GetRect(AppData.self_rect);
 	
-	if AppData.self_rect:IsIncludePoint(pt)==false then
+	local hit = sender:HitTest0(pt.x,pt.y,true);
+	
+	if hit==nil then
 		LXZAPI_OutputDebugStr("2 AddString:".. sender:GetAddString());
 		HelperSetCursorState(HelperGetCursorState("normal"));
 		HelperSetResizeWindow(nil);
@@ -44,19 +46,19 @@ local function OnSysLClickDown(window, msg, sender)
 	AppData.org.y = pt.y;
 	
 	local rect = AppData.self_rect;
-	if math.abs(rect.left-pt.x) < 10 then
+	if hit:GetName()=="left" then
 		AppData.state = STATE_RESIZE_LEFT;	
 		HelperSetCursorState(HelperGetCursorState("horization"));
-	elseif math.abs(rect.right-pt.x) < 10 then
+	elseif hit:GetName()=="right" then
 		AppData.state = STATE_RESIZE_RIGHT;
 		HelperSetCursorState(HelperGetCursorState("horization"));
-	elseif math.abs(rect.top-pt.y) < 10 then
+	elseif hit:GetName()=="top" then
 		AppData.state = STATE_RESIZE_TOP;
 		HelperSetCursorState(HelperGetCursorState("vertical"));
-	elseif math.abs(rect.bottom-pt.y) < 10 then
+	elseif hit:GetName()=="bottom" then
 		AppData.state = STATE_RESIZE_BOTTOM;
 		HelperSetCursorState(HelperGetCursorState("vertical"));
-	elseif rect:IsIncludePoint(pt) then
+	elseif hit:GetName()=="resize" then
 		AppData.state = STATE_RESIZE_DRAG;
 		HelperSetCursorState(HelperGetCursorState("drag"));
 	end
@@ -72,20 +74,27 @@ local function OnSysMouseMove(window, msg, sender)
 	local pt = LXZPoint:new_local();
 	pt.x = msg:int();
 	pt.y = msg:int();
-		
+	
+
+	
 	if AppData.isclickdown==false then
+		local hit = sender:HitTest0(pt.x,pt.y,true);		
+		if hit == nil then
+			return;
+		end
+	
 		sender:GetRect(AppData.self_rect);
 		local rect = AppData.self_rect;
 		local state = 0;
-		if math.abs(rect.left-pt.x) < 10 then		
+		if hit:GetName()=="left" then		
 			state = HelperGetCursorState("horization");			
-		elseif math.abs(rect.right-pt.x) < 10 then
+		elseif hit:GetName()=="right" then
 			state = HelperGetCursorState("horization");
-		elseif math.abs(rect.top-pt.y) < 10 then
+		elseif hit:GetName()=="top" then
 			state = HelperGetCursorState("vertical");
-		elseif math.abs(rect.bottom-pt.y) < 10 then
+		elseif hit:GetName()=="bottom" then
 			state = HelperGetCursorState("vertical");
-		elseif rect:IsIncludePoint(pt)==true then			
+		elseif hit:GetName()=="resize" then			
 			state = HelperGetCursorState("drag");
 			--HelperSetCursorState();
 			--
@@ -123,9 +132,6 @@ local function OnSysMouseMove(window, msg, sender)
 
 	--set size
 	if AppData.state==STATE_RESIZE_LEFT then
-		if (wnd:GetWidth()+offset_x)<10 then
-			return;
-		end
 	
 		local pos_self = LXZPoint:new_local();
 		local pos_wnd = LXZPoint:new_local();
@@ -140,17 +146,9 @@ local function OnSysMouseMove(window, msg, sender)
 		wnd:SetWidth(wnd:GetWidth()-offset_x);
 		sender:SetWidth(sender:GetWidth()-offset_x);
 	elseif AppData.state==STATE_RESIZE_RIGHT then
-		if (wnd:GetWidth()+offset_x)<10 then
-			return;
-		end
-		
 		wnd:SetWidth(wnd:GetWidth()+offset_x);
 		sender:SetWidth(sender:GetWidth()+offset_x);
 	elseif AppData.state==STATE_RESIZE_TOP then
-		if (wnd:GetHeight()+offset_y)<10 then
-			return;
-		end
-	
 		local pos_self = LXZPoint:new_local();
 		local pos_wnd = LXZPoint:new_local();
 		wnd:GetPos(pos_wnd);
@@ -164,10 +162,6 @@ local function OnSysMouseMove(window, msg, sender)
 		wnd:SetHeight(wnd:GetHeight()-offset_y);
 		sender:SetHeight(sender:GetHeight()-offset_y);
 	elseif AppData.state==STATE_RESIZE_BOTTOM then
-		if (wnd:GetHeight()+offset_y)<10 then
-			return;
-		end
-		
 		wnd:SetHeight(wnd:GetHeight()+offset_y);	
 		sender:SetHeight(sender:GetHeight()+offset_y);
 	elseif AppData.state==STATE_RESIZE_DRAG then
@@ -241,10 +235,10 @@ function HelperSetResizeWindow(wnd)
 	end
 	
 	local rc = LXZRect:new_local();
-	local pos = LXZPoint:new_local();	
-	wnd:GetHotPos(pos, true);		
-	window:SetWidth(wnd:GetWidth()+20);
-	window:SetHeight(wnd:GetHeight()+20);
+	local pos = LXZPoint:new_local();		
+	wnd:GetHotPos(pos, true);			
+	window:SetWidth(wnd:GetWidth()+40);
+	window:SetHeight(wnd:GetHeight()+40);
 	window:SetAddData(wnd:GetWindowHandle());
 	window:Show();
 	window:SetHotPos(pos, true);
@@ -288,9 +282,26 @@ local function OnMenuItems(window, msg, sender)
 	
 	local root = HelperGetRoot();
 	local window = root:GetLXZWindow(AppData.resize_name);
+	local handle = window:GetAddData();
+	local w = CLXZWindow:FromHandle(handle);
+	if w == nil then
+		return;
+	end
+	
 	if sender:GetName()=="edit" then
-		local wnd = root:GetLXZWindow("tween info");
-		wnd:Show();
+		LXZMessageBox("name:"..w:GetName())
+		if w:GetName()=="animate" then
+			local wnd = root:GetLXZWindow("tween info");
+			wnd:Show();
+		elseif w:GetName()=="wait timer" then
+			local pt = LXZPoint:new_local();
+			w:GetHotPos(pt,true);
+			local msg0 = CLXZMessage:new_local();
+			msg0:int(pt.x);
+			msg0:int(pt.y);
+			w:ProcMessage("OnSysDBClick", msg0, w);
+		end
+		
 	elseif sender:GetName()=="delete" then
 		delete_tween();
 	end

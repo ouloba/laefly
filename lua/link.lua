@@ -30,6 +30,13 @@ local function OnSysLClickDown(window, msg, sender)
 	AppData.current.y=pt.y;
 	AppData.isclickdown=true;
 	
+	local root = HelperGetRoot();
+	if root:GetLXZWindow("resize"):IsVisible()==true then
+		AppData.drag_wnd=nil;
+		AppData.current_link_handle=0;
+		return;
+	end
+	
 	local wnd = sender:HitTest0(pt.x,pt.y);
 	if wnd == nil then
 		AppData.drag_wnd=nil;
