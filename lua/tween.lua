@@ -64,7 +64,7 @@ local function OnSysDBClick(window, msg, sender)
 		AppData.current.x=x;
 		AppData.current.y=y;
 		local root = HelperGetRoot();
-		local wnd = root:GetLXZWindow("wait timer input");
+		local wnd = root:GetLXZWindow("canvas:wait timer input");
 		if sender:GetName()=="wait timer" then
 			local pt = LXZPoint:new_local();
 			sender:GetHotPos(pt, true);

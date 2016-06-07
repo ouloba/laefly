@@ -224,7 +224,7 @@ end
 
 function HelperSetResizeWindow(wnd)	
 	local root = HelperGetRoot();
-	local menus=root:GetLXZWindow("menus");
+	local menus=root:GetLXZWindow("canvas:menus");
 	local window = root:GetLXZWindow(AppData.resize_name);
 	if wnd==nil then
 		window:SetAddData(0);
@@ -275,7 +275,7 @@ local function delete_tween()
 			wnd:Delete();
 		end
 		window:SetAddData(0);
-		root:GetLXZWindow("menus"):Hide();
+		root:GetLXZWindow("canvas:menus"):Hide();
 end
 
 local function OnMenuItems(window, msg, sender)
@@ -300,8 +300,7 @@ local function OnMenuItems(window, msg, sender)
 			msg0:int(pt.x);
 			msg0:int(pt.y);
 			w:ProcMessage("OnSysDBClick", msg0, w);
-		end
-		
+		end		
 	elseif sender:GetName()=="delete" then
 		delete_tween();
 	end

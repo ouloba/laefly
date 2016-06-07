@@ -442,6 +442,56 @@ local function  OnPropertyMsg_trigger(window, msg, sender)
 end
 
 
+local function OnPropertyMsg_resolution(window, msg, sender)
+	local root = HelperGetRoot();
+	local menus = root:GetLXZWindow("head:resolution");
+	menus:Hide();
+	root:GetLXZWindow("head:resolution_btn"):SetState(0);
+	
+	local wnd = menus:GetFirstChild();
+	while wnd do
+		wnd:GetChild("select"):SetState(0);
+		wnd=wnd:GetNextSibling();
+	end
+	
+	sender:GetChild("select"):SetState(1);
+	local resolution = HelperGetWindowText(sender:GetChild("value"));
+	HelperSetWindowText(root:GetLXZWindow("head:resolution_sel"), resolution);	
+	local pt = LXZPoint:new_local();
+	local wnd=root:GetLXZWindow("canvas:context");
+	wnd:GetHotPos(pt, true);
+	--LXZMessageBox("LXZAPI_AsyncCallback1:"..resolution);
+	if sender:GetName()=="default" then
+		--LXZMessageBox("LXZAPI_AsyncCallback1")
+		local render = wnd:GetRender("Context");
+		local corecfg = render:GetCfg();
+		local ctx=corecfg:GetObj("context");
+		--LXZMessageBox("LXZAPI_AsyncCallback2")
+		HelperCoroutine(function(thread)
+			--LXZMessageBox("LXZAPI_AsyncCallback3")
+			LXZAPI_AsyncCallback(ctx, thread, [[ local root=HelperGetRoot();return serialize({w=root:GetWidth(),h=root:GetHeight()});]]);
+			local str = coroutine.yield();
+			if str ~= nil and string.len(str)>0 then
+				local res=unserialize(str);
+				wnd:SetWidth(res.w);
+				wnd:SetHeight(res.h);
+			end			
+		end);
+		
+	else
+		local _,__,w,h= string.find(resolution, "(%d+)x(%d+)");		
+		wnd:SetWidth(w);
+		wnd:SetHeight(h);	
+		
+		local msg0 = CLXZMessage:new_local();
+		msg0:int(w);
+		msg0:int(h);
+		wnd:ProcMessage("OnSetResolution", msg0, wnd);
+	end
+	wnd:SetHotPos(pt, true);
+
+end
+
 local property_callback ={};
 property_callback["tween info:property:repeat:value:arrow"] = OnPropertyMsg_repeat_arrow;
 property_callback["tween info:menus:repeat_menus:once"] = OnPropertyMsg_repeat_menus;
@@ -458,6 +508,12 @@ property_callback["dictions:close_btn"] = OnPropertyMsg_close_dictions;
 
 property_callback["tween info:property:trigger:once"] = OnPropertyMsg_trigger;
 property_callback["tween info:property:trigger:end"] = OnPropertyMsg_trigger;
+
+property_callback["head:resolution:default"] = OnPropertyMsg_resolution;
+property_callback["head:resolution:320x568"] = OnPropertyMsg_resolution;
+property_callback["head:resolution:384x512"] = OnPropertyMsg_resolution;
+property_callback["head:resolution:1024x768"] = OnPropertyMsg_resolution;
+property_callback["head:resolution:270x360"] = OnPropertyMsg_resolution;
 
 
 
@@ -518,6 +574,14 @@ local function OnHeadBtnItem(window, msg, sender)
 		else
 			sender:SetState(0);
 			root:GetLXZWindow("dictions"):Hide();
+		end
+	elseif sender:GetName()=="resolution_btn" then
+		if sender:GetState()==0 then
+			sender:SetState(1);
+			root:GetLXZWindow("head:resolution"):Show();
+		else
+			sender:SetState(0);
+			root:GetLXZWindow("head:resolution"):Hide();
 		end
 	end
 end
