@@ -13,6 +13,20 @@ RenderRefArrayLXZWindow = {};
 WindowRefLogic = {};
 local mime = require("mime");
 
+function HelperSetAttribute(wnd, rn,name,ref,v)
+	local obj = wnd;
+	if rn~= nil then
+		obj = wnd:GetRender(rn);
+	end
+	
+	if ref == nil then
+		ref = obj:GetAttributeNameRef(name);
+	end
+	
+	obj:SetAttribute(ref,v);	
+	return ref;
+end
+
 
 function HelperDecodeURI(s)
 	if s == nil then

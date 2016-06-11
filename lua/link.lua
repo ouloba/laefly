@@ -37,29 +37,17 @@ local function OnSysLClickDown(window, msg, sender)
 		return;
 	end
 	
-	local wnd = sender:HitTest0(pt.x,pt.y);
+	local wnd = sender:HitTest0(pt.x,pt.y,false);
 	if wnd == nil then
 		AppData.drag_wnd=nil;
 		AppData.current_link_handle=0;
 		return;
 	end
 		
-	if AppData.drag_wnd== nil then
-		if wnd:GetName()=="in" or wnd:GetName()=="out" then
-			AppData.drag_wnd = wnd;
-			AppData.current_link_handle=sender:GetWindowHandle();
-		else
-			LXZAPI_OutputDebugStr("OnSysLClickDown 2222");
-		end	
-		LXZAPI_OutputDebugStr("OnSysLClickDown 111:"..wnd:GetName());
-	else
-		AppData.drag_wnd=nil;
-		AppData.current_link_handle=0;
-		LXZAPI_OutputDebugStr("OnSysLClickDown nil");
-	end
-	
-	
-
+	if wnd:GetName()=="in" or wnd:GetName()=="out" then
+		AppData.drag_wnd = wnd;
+		AppData.current_link_handle=sender:GetWindowHandle();
+	end	
 end
 
 local function OnSysMouseMove(window, msg, sender)
@@ -72,7 +60,7 @@ local function OnSysMouseMove(window, msg, sender)
 	
 	if AppData.drag_wnd then
 		AppData.drag_wnd:SetHotPos(pt, true);
-		LXZAPI_OutputDebugStr("drag_wnd:"..AppData.drag_wnd:GetLongName())
+		--LXZAPI_OutputDebugStr("drag_wnd:"..AppData.drag_wnd:GetLongName())
 		
 		local handle = AppData.drag_wnd:GetAddData();
 		local wnd = CLXZWindow:FromHandle(handle);
@@ -94,21 +82,38 @@ local function get_link_other_node(wnd)
 	return in_;	
 end
 
+local function get_link_window_by_node(node)
+	if node==nil then
+		return nil;
+	end
+
+	local handle= node:GetAddData();
+	local wnd = CLXZWindow:FromHandle(handle);
+	if wnd then
+		return wnd:GetParent();
+	end	
+	return nil;
+end
+
 local function is_may_link_self(wnd,window)
 	local p1=wnd:GetParent();
 	local other = get_link_other_node(window);
-	local handle = other:GetAddData();
-	local node = CLXZWindow:FromHandle(handle);
-	if node == nil then
-		return false;
-	end
-	
-	if p1==node:GetParent() then
+	local w=get_link_window_by_node(other);	
+	if p1==w then
 		return true;
-	end
-	
+	end	
 	return false;	
 end
+
+local function is_in(a,...)
+	for i,v in ipairs{...} do
+			if v==a then
+				return true;
+			end
+	end	
+	return false;
+end
+
 
 local function is_link_match(wnd,window)
 	if wnd == nil or window==nil then
@@ -127,12 +132,46 @@ local function is_link_match(wnd,window)
 		if(is_may_link_self(wnd, window)) then
 			return false;
 		end		
-		return  true;
+		
+		local w2=get_link_other_node(window);
+		local w2=get_link_window_by_node(w2);
+		if w2==nil then
+			LXZAPI_OutputDebugStr("is_in 1:");
+			return true;
+		end
+		
+		local w1=wnd:GetParent();
+		
+		if is_in(w1:GetName(),"start","end","timer slot") and is_in(w2:GetName(), "animate","wait timer","wait event") then
+			LXZAPI_OutputDebugStr("is_in:"..w1:GetName().." "..w2:GetName());
+			return true;
+		elseif is_in(w2:GetName(),"start","end","timer slot") and is_in(w1:GetName(), "animate","wait timer","wait event") then
+			LXZAPI_OutputDebugStr("is_in:"..w1:GetName().." "..w2:GetName());	
+			return true;
+		end		
+		return  false;
 	elseif wnd:GetClassName()=="out"  and window:GetClassName()=="in" then
 		if(is_may_link_self(wnd, window)) then
 			return false;
 		end		
-		return true;
+		
+		local w2=get_link_other_node(window);
+		local w2=get_link_window_by_node(w2);
+		if w2==nil then
+			LXZAPI_OutputDebugStr("is_in 2:");
+			return true;
+		end
+		
+		local w1=wnd:GetParent();
+		
+		if is_in(w1:GetName(),"start","end","timer slot") and is_in(w2:GetName(), "animate","wait timer","wait event") then
+			LXZAPI_OutputDebugStr("is_in:"..w1:GetName().." "..w2:GetName());
+			return true;
+		elseif is_in(w2:GetName(),"start","end","timer slot") and is_in(w1:GetName(), "animate","wait timer","wait event") then
+			LXZAPI_OutputDebugStr("is_in:"..w1:GetName().." "..w2:GetName());
+			return true;
+		end		
+		return  false;
 	end
 	
 	return false;

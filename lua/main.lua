@@ -77,7 +77,7 @@ local function  transfer_msg(x, y, cmd)
 	local wnd = root:HitTest(x,y,true);
 	if canvas:IsChild(wnd)==false and canvas~=wnd then		
 		if wnd then
-			LXZAPI_OutputDebugStr("transfer_msg sss:"..cmd.." wnd:"..wnd:GetLongName());	
+			--LXZAPI_OutputDebugStr("transfer_msg sss:"..cmd.." wnd:"..wnd:GetLongName());	
 		end
 		return;
 	end
@@ -97,7 +97,7 @@ local function  transfer_msg(x, y, cmd)
 	local hit = tween_layer:HitTest0(x, y,false);
 	if hit then	
 		hit=GetParentByClass(hit,"link");
-		LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." hit:"..hit:GetLongName());				
+		--LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." hit:"..hit:GetLongName());				
 		 hit:ProcMessage(cmd, msg, hit);
 		 if cmd=="OnSysLClickDown" then
 			MOVE_HANDLE=hit:GetWindowHandle();
@@ -108,7 +108,7 @@ local function  transfer_msg(x, y, cmd)
 	local tween_layer = root:GetLXZWindow("canvas:tween layer");
 	local hit = tween_layer:HitTest0(x, y,false);
 	if hit then		
-		LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." hit:"..hit:GetLongName());
+		--LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." hit:"..hit:GetLongName());
 		hit=GetParentByClass(hit,"tween");
 		hit:ProcMessage(cmd, msg, hit);
 		if cmd=="OnSysLClickDown" then
@@ -116,7 +116,7 @@ local function  transfer_msg(x, y, cmd)
 		end
 	end
 	
-	LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." x:"..x.." y:"..y);
+	--LXZAPI_OutputDebugStr("transfer_msg:"..cmd.." x:"..x.." y:"..y);
 end
 
 local function OnCanvasMouseMove(window, msg, sender)
@@ -219,6 +219,15 @@ local function OnWillAddElement(window, msg, sender)
 	wnd:SetHotPos(pt, true);
 end
 
+
+local function OnElementDragged(window, msg, sender)
+	local root = HelperGetRoot();
+	local wnd = root:GetLXZWindow("system:cursor");
+	HelperSetEmbededWindow(wnd, "");	
+	wnd:Hide();	
+end
+
+
 local function OnCursorMove(window, msg, sender)
 	if sender:GetClassName()=="tween" then
 		return;
@@ -320,6 +329,31 @@ local function OnPropertyMsg_close_tween_info(window, msg, sender)
 	root:GetLXZWindow("head:tween_info_btn"):SetState(0);
 end
 
+local function OnPropertyMsg_dbclick_tween_info_head(window, msg, sender)
+	local root = HelperGetRoot();
+	local wnd = root:GetLXZWindow("tween info:head");
+	wnd:DelBit(STATUS_IsDisable);
+	wnd:GetChild("ok"):Show();	
+	root:GetLXZWindow("tween info:close_btn"):Hide();
+	wnd:SetFocus();
+end
+
+local function OnPropertyMsg_tween_info_head_ok(window, msg, sender)
+	sender:Hide();
+	local root = HelperGetRoot();
+	local window = root:GetLXZWindow("resize");
+	local cfg = window:GetCfg();
+	local handle= cfg:GetInt("current");
+	local curwnd = CLXZWindow:FromHandle(handle);
+	local wnd = root:GetLXZWindow("tween info:head");
+	wnd:SetBit(STATUS_IsDisable);
+	root:GetLXZWindow("tween info:close_btn"):Show();
+	local txt = HelperGetWindowText(wnd);
+	if curwnd then
+		HelperSetWindowText(curwnd, txt);
+	end
+end
+
 
 local function OnPropertyMsg_close_ui_tree(window, msg, sender)
 	local root = HelperGetRoot();
@@ -387,35 +421,7 @@ function add_tree_item(cls,parent,wnd,y)
 end
 
 local function OnPropertyMsg_open_ui_tree(window, msg, sender)	
-
-	HelperCoroutine(function(thread)
-	
-	--	LXZMessageBox("cls:"..cls:GetName().." class:"..cls:GetClassName())
-	
-		local alloc = ILXZAlloc:new();
-		local msg = CLXZMessage:new_local();
-		msg:uint32(bit.bor(OFN_FILEMUSTEXIST,OFN_EXPLORER));
-		alloc:set(msg:getMsgPtr(),msg:getMsgSize());
-		callbackthread["OpenFolder"]=thread;
-		LXZAPI_CallSystemAPI("OpenFolder","ui file (.ui;)*.ui;\0\0",alloc);	
-		alloc:destroy();
-
-		local file = coroutine.yield();	
-	--	local file = "H:\\Demo\\ffmpeg\\ffmpeg.ui";
-		--LXZMessageBox("file:"..file);
-		if file ~= nil and string.len(file)>0 then						
-			local wnd = CLXZWindow:LoadWindow(file);			
-			local root = HelperGetRoot();
-			local tree = root:GetLXZWindow("ui tree:items");	
-			local cls   = root:GetLXZWindow("system:wnd item");			
-			tree:ClearChilds();
-			add_tree_item(cls, tree,wnd);	
-			local child = tree:GetFirstChild();
-			LXZMessageBox("child:"..child:GetName());
-			reset_tree_position(child, 0);
-			wnd:Delete();
-		end
-	end);	
+	OpenEditedUI();
 end
 
 local function OnPropertyMsg_close_dictions(window, msg, sender)
@@ -466,18 +472,20 @@ local function OnPropertyMsg_resolution(window, msg, sender)
 		local render = wnd:GetRender("Context");
 		local corecfg = render:GetCfg();
 		local ctx=corecfg:GetObj("context");
-		--LXZMessageBox("LXZAPI_AsyncCallback2")
-		HelperCoroutine(function(thread)
-			--LXZMessageBox("LXZAPI_AsyncCallback3")
-			LXZAPI_AsyncCallback(ctx, thread, [[ local root=HelperGetRoot();return serialize({w=root:GetWidth(),h=root:GetHeight()});]]);
-			local str = coroutine.yield();
-			if str ~= nil and string.len(str)>0 then
-				local res=unserialize(str);
-				wnd:SetWidth(res.w);
-				wnd:SetHeight(res.h);
-			end			
-		end);
+		local default_scale = corecfg:GetFloat("DefaultScale");
+		local default_w = corecfg:GetInt("DefaultWidth");
+		local default_h = corecfg:GetInt("DefaultHeight");
 		
+		--LXZMessageBox("default_w:"..default_w.."  default_h:"..default_h.." scale:"..default_scale);
+			HelperSetWindowText(root:GetLXZWindow("head:resolution_sel"), "default("..(default_w*default_scale).."x"..(default_h*default_scale)..")");	
+		
+		wnd:SetWidth(default_w*default_scale);
+		wnd:SetHeight(default_h*default_scale);	
+		
+		local msg0 = CLXZMessage:new_local();
+		msg0:int(default_w*default_scale);
+		msg0:int(default_h*default_scale);
+		wnd:ProcMessage("OnSetResolution", msg0, wnd);			
 	else
 		local _,__,w,h= string.find(resolution, "(%d+)x(%d+)");		
 		wnd:SetWidth(w);
@@ -516,8 +524,8 @@ property_callback["head:resolution:1024x768"] = OnPropertyMsg_resolution;
 property_callback["head:resolution:270x360"] = OnPropertyMsg_resolution;
 
 
-
-
+property_callback["tween info"] = OnPropertyMsg_dbclick_tween_info_head;
+property_callback["tween info:head:ok"] = OnPropertyMsg_tween_info_head_ok;
 
 
 local function OnPropertyMsg(window, msg, sender)
@@ -541,6 +549,67 @@ local function OnTransitionMenuItem(window, msg, sender)
 	wnd:Hide();
 	wnd:GetLXZWindow("transition_menus"):Hide();
 	HelperSetWindowText(root:GetLXZWindow("tween info:property:erase transition:value"), sender:GetName());
+end
+
+--获取路径  
+function strippath(filename)  
+	if LXZAPIGetOS()~="WIN32" then
+		local _,__,path=string.find(filename, "(.+)/[^/]*%.%w+$") --*nix system  
+		return path;
+	end
+	
+    local _,__,path= string.find(filename, "(.+)\\[^\\]*%.%w+$") --windows  
+	return path;
+end  
+  
+--获取文件名  
+function stripfilename(filename)  
+	if LXZAPIGetOS()~="WIN32" then
+		local _,__,file= string.find(filename, "[.+/]([^/]*%.%w+)$") -- *nix system 
+		if file==nil then
+			return filename;
+		end
+		return file;
+	end
+	
+    local _,__,file= string.find(filename, "[.+\\]([^\\]*%.%w+)$") --*nix system  
+	if file==nil then
+		return filename;
+	end
+	
+	return file;
+end  
+
+function OpenEditedUI()
+	local root = HelperGetRoot();	
+		HelperCoroutine(function(thread)
+			local alloc = ILXZAlloc:new_local();
+			local msg = CLXZMessage:new_local();
+			msg:uint32(bit.bor(OFN_FILEMUSTEXIST,OFN_EXPLORER));
+			alloc:set(msg:getMsgPtr(),msg:getMsgSize());
+			callbackthread["OpenFolder"]=thread;
+			LXZAPI_CallSystemAPI("OpenFolder","ui file (.ui;)\0*.ui;\0\0",alloc);	
+			local file = coroutine.yield();		
+			if file ~= nil and string.len(file)>0 then
+				--AppData.current=file;			
+				--HelperSetWindowText(root:GetLXZWindow("head:title"),stripfilename(file));
+				--LXZMessageBox("file:"..file);
+				HelperSetAttribute(root:GetLXZWindow("canvas:context"),"Context","Context:cfg", nil,"default.cfg");
+				HelperSetAttribute(root:GetLXZWindow("canvas:context"),"Context","Context:workdir", nil,strippath(file));
+				
+				--
+				local wnd = CLXZWindow:LoadWindow(file);			
+				local root = HelperGetRoot();
+				local tree = root:GetLXZWindow("ui tree:items");	
+				local cls   = root:GetLXZWindow("system:wnd item");			
+				tree:ClearChilds();
+				add_tree_item(cls, tree,wnd);	
+				local child = tree:GetFirstChild();
+				LXZMessageBox("child:"..child:GetName());
+				reset_tree_position(child, 0);
+				wnd:Delete();
+			end
+		end);
 end
 
 local function OnHeadBtnItem(window, msg, sender)	
@@ -583,6 +652,18 @@ local function OnHeadBtnItem(window, msg, sender)
 			sender:SetState(0);
 			root:GetLXZWindow("head:resolution"):Hide();
 		end
+	elseif sender:GetName()=="simulate_btn" then
+		if sender:GetState()==0 then
+			sender:SetState(1);
+			root:GetLXZWindow("canvas:context"):Show();
+			root:GetLXZWindow("head:open_btn"):Show();
+		else
+			sender:SetState(0);
+			root:GetLXZWindow("canvas:context"):Hide();
+			root:GetLXZWindow("head:open_btn"):Hide();
+		end
+	elseif sender:GetName()=="open_btn" then
+		OpenEditedUI();
 	end
 end
 
@@ -679,7 +760,7 @@ end
 
 local function OnEditWaitTimerOk(window, msg, sender)
 	local root = HelperGetRoot();
-	local wnd = root:GetLXZWindow("wait timer input");
+	local wnd = root:GetLXZWindow("canvas:wait timer input");
 	wnd:Hide();
 	local text = HelperGetWindowText(wnd:GetChild("value"));
 	local window=CLXZWindow:FromHandle(wnd:GetAddData());
@@ -714,6 +795,8 @@ event_callback ["OnFileMenuItem"] =OnFileMenuItem;
 event_callback ["OnTreeIconItem"] =OnTreeIconItem;
 event_callback ["OnTreeItemRender"] = OnTreeItemRender;
 event_callback ["OnEditWaitTimerOk"] = OnEditWaitTimerOk;
+event_callback ["OnElementDragged"] = OnElementDragged;
+
 
 function main_dispacher(window, cmd, msg, sender)
 ---	LXZAPI_OutputDebugStr("cmd 1:"..cmd);

@@ -36,10 +36,9 @@ local function OnTweenClickDown(window, msg, sender)
 	AppData.current.y = msg:int();	
 	
 	local rect = LXZRect:new_local();
-	sender:GetRect(rect);	
-	rect:Deflate(10,10,10,10);
+	sender:GetRect(rect);		
 	if rect:IsIncludePoint(AppData.current) then
-		HelperSetResizeWindow(sender);
+		HelperSetResizeWindow(sender);		
 	end		
 	
 end
@@ -109,6 +108,8 @@ local function OnDrag(window, msg, sender)
 		local match = link:GetChild(get_match_name(wnd:GetClassName()));
 		match:SetAddData(wnd:GetWindowHandle());
 		wnd:SetAddData(match:GetWindowHandle());
+		pt.x=x;
+		pt.y=y;
 		link:GetChild("in"):SetHotPos(pt, true);
 		link:GetChild("out"):SetHotPos(pt, true);
 		link:LayerTop(link:GetChild(wnd:GetClassName()));

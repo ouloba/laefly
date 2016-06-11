@@ -23,7 +23,7 @@ local function OnSysLClickDown(window, msg, sender)
 	local root = HelperGetRoot();
 	local wnd = CLXZWindow:FromHandle(sender:GetAddData());
 	if wnd == nil then
-		LXZAPI_OutputDebugStr("0 AddString:".. sender:GetAddString());
+		LXZAPI_OutputDebugStr("0 AddString:".. sender:GetAddData());
 		return;
 	end
 	
@@ -62,11 +62,6 @@ local function OnSysLClickDown(window, msg, sender)
 		AppData.state = STATE_RESIZE_DRAG;
 		HelperSetCursorState(HelperGetCursorState("drag"));
 	end
-	
-	LXZAPI_OutputDebugStr("3 AddString:".. sender:GetAddString().." ["..rect.left..","..rect.top..","..rect.right..","..rect.bottom.."] "..pt.x..","..pt.y);
-	local corecfg = ICGuiGetLXZCoreCfg();
-	
-	--LXZMessageBox("AddString:".. sender:GetAddString());
 	
 end
 
@@ -115,7 +110,7 @@ local function OnSysMouseMove(window, msg, sender)
 	wnd:GetRect(AppData.wnd_rect);
 	sender:GetRect(AppData.self_rect);
 	
-	local menus = root:GetLXZWindow("menus");
+	local menus = root:GetLXZWindow("canvas:menus");
 	local rc = AppData.self_rect;
 	local pt1 = rc:TopRight();
 	pt1.x = pt1.x-menus:GetWidth()/2;
@@ -188,8 +183,12 @@ local function OnSysLClickUp(window, msg, sender)
 	local x = msg:int();
 	local y = msg:int();
 	AppData.isclickdown=false;
-	if sender:HitTest(x,y)==nil then
+	--LXZMessageBox("OnSysLClickUp")
+	if sender:HitTest0(x,y,true)==nil then
 		HelperSetResizeWindow(nil);
+		local rc = LXZRect:new_local();
+		sender:GetRect(rc);
+		--LXZAPI_OutputDebugStr("Name:"..sender:GetLongName().." x:"..x.." y:"..y.." left:"..rc.left.." right:"..rc.right.." top:"..rc.top.." bottom:"..rc.bottom)
 	end
 end
 
@@ -249,6 +248,8 @@ function HelperSetResizeWindow(wnd)
 	HelperSetCursorState(HelperGetCursorState("drag"));	
 	menus:Show();
 	menus:SetHotPos(pt, true);
+	local cfg = window:GetCfg();
+	cfg:SetInt("current", -1, wnd:GetWindowHandle());
 	LXZAPI_OutputDebugStr("AddString:"..wnd:GetWindowHandle().." window:"..wnd:GetLongName());
 end
 
@@ -289,7 +290,7 @@ local function OnMenuItems(window, msg, sender)
 	end
 	
 	if sender:GetName()=="edit" then
-		LXZMessageBox("name:"..w:GetName())
+		--LXZMessageBox("name:"..w:GetName())
 		if w:GetName()=="animate" then
 			local wnd = root:GetLXZWindow("tween info");
 			wnd:Show();
