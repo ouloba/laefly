@@ -301,6 +301,9 @@ local function OnMenuItems(window, msg, sender)
 			msg0:int(pt.x);
 			msg0:int(pt.y);
 			w:ProcMessage("OnSysDBClick", msg0, w);
+		elseif w:GetName()=="end" then
+			local wnd = root:GetLXZWindow("end info");
+			wnd:Show();
 		end		
 	elseif sender:GetName()=="delete" then
 		delete_tween();

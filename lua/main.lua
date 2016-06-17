@@ -392,7 +392,7 @@ function reset_tree_position(wnd,y)
 	while child do
 		local ww=reset_tree_position(child, y);
 		ww:GetVisualFrame(rc, true, false);
-		y = y +rc:Height();
+		y = y + rc:Height();
 		child = child:GetNextSibling();
 	end
 	
@@ -600,13 +600,22 @@ function OpenEditedUI()
 				--
 				local wnd = CLXZWindow:LoadWindow(file);			
 				local root = HelperGetRoot();
-				local tree = root:GetLXZWindow("ui tree:items");	
+				local tree = root:GetLXZWindow("ui tree:area:items");	
+				local pt = LXZPoint:new_local();
+				tree:SetPos(pt);
+				tree:SetWidth(tree:GetParent():GetWidth());
+				tree:SetHeight(tree:GetParent():GetHeight());
 				local cls   = root:GetLXZWindow("system:wnd item");			
 				tree:ClearChilds();
 				add_tree_item(cls, tree,wnd);	
 				local child = tree:GetFirstChild();
-				LXZMessageBox("child:"..child:GetName());
+				--LXZMessageBox("child:"..child:GetName());
 				reset_tree_position(child, 0);
+				local rc = LXZRect:new_local();
+				tree:GetVisualFrame(rc, true, true);
+				tree:SetWidth(rc:Width());
+				tree:SetHeight(rc:Height());
+				--ww:SetHeight(h);
 				wnd:Delete();
 			end
 		end);
@@ -753,8 +762,15 @@ local function OnTreeIconItem(window, msg, sender)
 	end
 	
 	local root = HelperGetRoot();
-	local tree = root:GetLXZWindow("ui tree:items");	
-	reset_tree_position(tree:GetFirstChild(), 0);
+	local tree = root:GetLXZWindow("ui tree:area:items");	
+	tree:SetWidth(tree:GetParent():GetWidth());
+	tree:SetHeight(tree:GetParent():GetHeight());
+	reset_tree_position(tree:GetFirstChild(), 0);	
+	local rc = LXZRect:new_local();
+	tree:GetVisualFrame(rc, true, true);
+	tree:SetWidth(rc:Width());
+	tree:SetHeight(rc:Height());	
+	--ww:SetHeight(h);
 	--w:ProcMessage("OnArray", msg, w);
 end
 
